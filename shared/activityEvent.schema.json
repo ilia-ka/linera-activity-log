@@ -1,0 +1,84 @@
+{
+  "$id": "activityEvent.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "actor": { "type": "string", "pattern": "^0x[a-f0-9]{40}$" },
+    "app": { "type": "string", "enum": ["arc-stable-toolbox"] },
+    "intentId": { "type": "string", "format": "uuid" },
+    "kind": { "type": "string", "enum": ["bridge", "swap", "deploy", "contractCall"] },
+    "status": {
+      "type": "string",
+      "enum": ["started", "approved", "submitted", "attested", "completed", "failed"]
+    },
+    "chains": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceChainId": { "type": "integer", "minimum": 1 },
+        "destChainId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "token": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": "string", "enum": ["USDC", "EURC"] },
+        "amount": { "type": "string", "pattern": "^[0-9]+$" }
+      },
+      "required": ["symbol", "amount"]
+    },
+    "tx": {
+      "type": "object",
+      "properties": {
+        "sourceTxHash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" },
+        "destTxHash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "explorerSourceUrl": { "type": "string", "format": "uri" },
+        "explorerDestUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["suggest", "approve"] },
+        "receiptRoot": { "type": "string" },
+        "model": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["approve", "deny", "suggest"] },
+        "reason": { "type": "string" }
+      },
+      "required": ["mode"]
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "deployAddress": { "type": "string", "pattern": "^0x[a-f0-9]{40}$" },
+            "errors": { "type": "array", "items": { "type": "string" } },
+            "decimals": { "type": "integer", "minimum": 0 },
+            "slippage": { "type": "string" }
+          }
+        }
+      },
+      "required": ["items"]
+    }
+  },
+  "required": ["id", "createdAt", "actor", "app", "intentId", "kind", "status"]
+}
