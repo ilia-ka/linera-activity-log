@@ -8,3 +8,13 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 linera-sdk = "0.15.8"
+linera-views = "0.15.8"
+serde = { version = "1.0", features = ["derive"] }
+
+[[bin]]
+name = "activity_log_contract"
+path = "src/contract.rs"
+
+[[bin]]
+name = "activity_log_service"
+path = "src/service.rs"
