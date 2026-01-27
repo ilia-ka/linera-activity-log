@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http"
 import { checkApiKey } from "../auth"
-import { store } from "../store"
+import { backend } from "../backend"
 
 export async function handleGet(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
@@ -31,7 +31,7 @@ export async function handleGet(req: IncomingMessage, res: ServerResponse): Prom
   const cursor = url.searchParams.get("cursor")
   const parsedLimit = limitValue ? Number.parseInt(limitValue, 10) : 20
   const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20
-  const result = store.getEvents(actor, limit, cursor)
+  const result = await backend.getEvents(actor, limit, cursor)
 
   res.statusCode = 200
   res.setHeader("content-type", "application/json")

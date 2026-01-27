@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "http"
 import { checkApiKey } from "../auth"
 import { validateStatusPayload } from "../validation"
-import { store } from "../store"
 import { ActivityStatus, ActivityTx } from "../../../shared/types"
+import { backend } from "../backend"
 
 export async function handleStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
@@ -36,7 +36,7 @@ export async function handleStatus(req: IncomingMessage, res: ServerResponse): P
   const id = payload["id"] as string
   const status = payload["status"] as ActivityStatus
   const tx = payload["tx"] as ActivityTx | undefined
-  const updated = store.updateEventStatus(actor, id, status, tx)
+  const updated = await backend.updateEventStatus(actor, id, status, tx)
   if (!updated.ok) {
     res.statusCode = 404
     res.setHeader("content-type", "application/json")
