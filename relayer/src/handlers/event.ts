@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "http"
 import { checkApiKey } from "../auth"
 import { validateEventPayload } from "../validation"
+import { store } from "../store"
+import { ActivityEvent } from "../../../shared/types"
 
 export async function handleEvent(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
@@ -27,6 +29,14 @@ export async function handleEvent(req: IncomingMessage, res: ServerResponse): Pr
     res.statusCode = 400
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: "validation_failed", errors: result.errors }))
+    return
+  }
+
+  const stored = store.appendEvent(payload as ActivityEvent)
+  if (!stored.ok) {
+    res.statusCode = 409
+    res.setHeader("content-type", "application/json")
+    res.end(JSON.stringify({ ok: false, error: stored.error }))
     return
   }
 
