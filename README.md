@@ -104,5 +104,6 @@ curl -X POST http://localhost:3000/event/status \
 Get events:
 
 ```
-curl "http://localhost:3000/events?actor=0x1111111111111111111111111111111111111111&limit=20"
+curl "http://localhost:3000/events?actor=0x1111111111111111111111111111111111111111&limit=20" \
+  -H "x-api-key: dev"
 ```
