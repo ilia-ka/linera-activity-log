@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node --project tsconfig.json src/index.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
