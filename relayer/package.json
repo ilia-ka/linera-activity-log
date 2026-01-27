@@ -4,7 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node --project tsconfig.json src/index.ts"
+    "dev": "ts-node --project tsconfig.json src/index.ts",
+    "test": "node --test -r ts-node/register test/validation.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
