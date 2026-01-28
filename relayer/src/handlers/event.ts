@@ -6,7 +6,7 @@ import { backend } from "../backend"
 
 export async function handleEvent(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
-  if (!auth.ok) {
+  if ("status" in auth) {
     res.statusCode = auth.status
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: auth.error }))
@@ -25,7 +25,7 @@ export async function handleEvent(req: IncomingMessage, res: ServerResponse): Pr
   }
 
   const result = validateEventPayload(payload)
-  if (!result.ok) {
+  if ("errors" in result) {
     res.statusCode = 400
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: "validation_failed", errors: result.errors }))
@@ -33,7 +33,7 @@ export async function handleEvent(req: IncomingMessage, res: ServerResponse): Pr
   }
 
   const stored = await backend.appendEvent(payload as ActivityEvent)
-  if (!stored.ok) {
+  if ("error" in stored) {
     res.statusCode = 409
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: stored.error }))

@@ -9,7 +9,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 linera-sdk = "0.15.8"
 linera-views = "0.15.8"
+async-graphql = "=7.0.17"
+async-graphql-value = "=7.0.17"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [[bin]]
 name = "activity_log_contract"

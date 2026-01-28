@@ -6,7 +6,7 @@ import { backend } from "../backend"
 
 export async function handleStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
-  if (!auth.ok) {
+  if ("status" in auth) {
     res.statusCode = auth.status
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: auth.error }))
@@ -25,7 +25,7 @@ export async function handleStatus(req: IncomingMessage, res: ServerResponse): P
   }
 
   const result = validateStatusPayload(payload)
-  if (!result.ok) {
+  if ("errors" in result) {
     res.statusCode = 400
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: "validation_failed", errors: result.errors }))
@@ -37,7 +37,7 @@ export async function handleStatus(req: IncomingMessage, res: ServerResponse): P
   const status = payload["status"] as ActivityStatus
   const tx = payload["tx"] as ActivityTx | undefined
   const updated = await backend.updateEventStatus(actor, id, status, tx)
-  if (!updated.ok) {
+  if ("error" in updated) {
     res.statusCode = 404
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: updated.error }))

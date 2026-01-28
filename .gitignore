@@ -14,11 +14,14 @@ target/
 
 .env
 .env.*
+!.env.example
+.envrc
 
 .idea/
 .vscode/
 
 linera-wallet.json
 .linera/
+.run/
 
 agents/

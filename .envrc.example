@@ -1,0 +1,3 @@
+export LINERA_WALLET=./.linera/wallet.json
+export LINERA_KEYSTORE=./.linera/keystore.json
+export LINERA_STORAGE=rocksdb:./.linera/wallet.db

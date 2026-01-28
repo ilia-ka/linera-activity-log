@@ -1,6 +1,6 @@
 import { ActivityEvent, ActivityStatus, ActivityTx } from "../../shared/types"
 import { config } from "./config"
-import { createLineraClient, LineraClient } from "./linera"
+import { createLineraClient, LineraClient, resolveAppEndpoint } from "./linera"
 import { AppendResult, createStore, EventStore, GetResult, UpdateResult } from "./store"
 
 export type Backend = {
@@ -20,8 +20,7 @@ export function createBackend(options?: {
   lineraEnabled?: boolean
 }): Backend {
   const store = options?.store ?? createStore(300)
-  const lineraEnabled =
-    options?.lineraEnabled ?? (config.lineraAppId && config.lineraAppId !== "app-id")
+  const lineraEnabled = options?.lineraEnabled ?? Boolean(resolveAppEndpoint(config))
   const linera = options?.linera ?? (lineraEnabled ? createLineraClient(config) : null)
 
   async function appendEvent(event: ActivityEvent): Promise<AppendResult> {

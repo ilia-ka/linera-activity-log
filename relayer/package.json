@@ -5,7 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "dev": "ts-node --project tsconfig.json src/index.ts",
-    "test": "node --test -r ts-node/register test/auth.test.ts test/validation.test.ts test/store.test.ts test/backend.test.ts"
+    "test": "node --test -r ts-node/register test/auth.test.ts test/validation.test.ts test/store.test.ts test/backend.test.ts test/linera.test.ts test/e2e.test.ts",
+    "test:e2e": "set -a; . ../.env; set +a; RELAYER_E2E=1 node --test -r ts-node/register test/e2e.test.ts",
+    "test:e2e:linera": "set -a; . ../.env; set +a; RELAYER_E2E=1 RELAYER_E2E_LINERA=1 node --test -r ts-node/register test/e2e.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

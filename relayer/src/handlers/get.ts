@@ -4,7 +4,7 @@ import { backend } from "../backend"
 
 export async function handleGet(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const auth = checkApiKey(req.headers)
-  if (!auth.ok) {
+  if ("status" in auth) {
     res.statusCode = auth.status
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ ok: false, error: auth.error }))
