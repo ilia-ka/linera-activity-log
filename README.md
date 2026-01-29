@@ -1,10 +1,138 @@
 # linera-activity-log
 
-Realtime activity feed and audit log service for Arc Station.
+Realtime activity feed and audit log service for Arc Station.  
+The only goal is to store and serve ActivityEvent entries. Linera is used strictly as storage, not as business logic, execution, or decision layer.
 
-## Scope
+## Quickstart
 
-This service only stores and serves ActivityEvent entries. Linera is used only as a storage substrate for this feed and is not responsible for decisions, execution, funds, or business logic.
+Run the menu script:
+
+```
+./scripts/quickstart.sh
+```
+
+Menu options:
+
+1) Reset .linera  
+2) Export LINERA_* (local .linera)  
+3) Start linera net up (background)  
+4) linera wallet init  
+5) linera wallet request-chain  
+6) Build wasm  
+7) Publish app + write ids  
+8) Start linera service (background)  
+9) Start relayer (background)  
+10) Run tests (unit + e2e + e2e:linera)  
+11) Write ids manually  
+12) Stop all services  
+13) Force kill by ports (8080/8081/3000)  
+0) Full setup (1-9)  
+q) Quit
+
+Logs and PID files for background processes are stored in `.run/`.
+
+## Installation and setup (detailed, in menu order)
+
+### 1) Reset .linera
+
+Required after restarting `linera net up`, otherwise old wallet/chain metadata will not match the new network.
+
+```
+rm -rf .linera
+mkdir -p .linera
+```
+
+### 2) Export LINERA_* (local .linera)
+
+```
+export LINERA_WALLET=./.linera/wallet.json
+export LINERA_KEYSTORE=./.linera/keystore.json
+export LINERA_STORAGE=rocksdb:./.linera/wallet.db
+```
+
+You can skip these exports and use the default Linera directory `~/.config/linera`, but a project-local `.linera` is easier to reset and keeps state isolated per repo.
+
+### 3) Start linera net up
+
+```
+linera net up --with-faucet --faucet-port 8080
+```
+
+Keep this running while you work.
+
+### 4) linera wallet init
+
+```
+linera wallet init --faucet http://localhost:8080
+```
+
+### 5) linera wallet request-chain
+
+```
+linera wallet request-chain --faucet http://localhost:8080
+```
+
+### 6) Build wasm
+
+```
+cd linera-app
+cargo +1.86.0 build --release --target wasm32-unknown-unknown
+```
+
+### 7) Publish app + write ids
+
+Auto publish and write `chainId/appId`:
+
+```
+../scripts/linera-publish.sh
+```
+
+IDs file: `.linera/ids.json`
+
+```
+{"chainId":"...","appId":"..."}
+```
+
+### 8) Start linera service
+
+```
+linera service --port 8081
+```
+
+If you see `Blobs not found`, your wallet/chain metadata does not match the running validators. Run steps 1–5 again.
+
+### 9) Start relayer
+
+```
+cd relayer
+npm install
+npm run dev
+```
+
+### 10) Run tests (unit + e2e + e2e:linera)
+
+```
+cd relayer
+npm test
+npm run test:e2e
+npm run test:e2e:linera
+```
+
+If tests print `linera_append_failed`/`linera_get_failed`, that is expected for cases where Linera is intentionally unavailable.
+
+### 11) Write ids manually
+
+```
+printf "{\"chainId\":\"%s\",\"appId\":\"%s\"}\n" "<chain-id>" "<app-id>" > ./.linera/ids.json
+```
+
+### 12) Stop all services
+
+Stops background processes started by the script (`net up`, `linera service`, `relayer`).
+
+### 13) Force kill by ports (8080/8081/3000)
+
+Force‑kills any process holding these ports.
 
 ## Install Linera CLI
 
@@ -32,136 +160,9 @@ Add the SDK to your Rust app when needed:
 cargo add linera-sdk@0.15.8
 ```
 
-## Start a local Linera network
+## Config and environment
 
-Step 1. Start the local network (keep this running):
-
-```
-linera net up --with-faucet --faucet-port 8080
-```
-
-Step 2. In a new shell, set local wallet storage and create a chain:
-
-```
-export LINERA_WALLET=./.linera/wallet.json
-export LINERA_KEYSTORE=./.linera/keystore.json
-export LINERA_STORAGE=rocksdb:./.linera/wallet.db
-
-linera wallet init --faucet http://localhost:8080
-linera wallet request-chain --faucet http://localhost:8080
-```
-
-Keep `linera net up` running while you use the network. If you restart it, you must recreate the wallet and chain metadata.
-
-Why this matters: the local test network uses temporary validator state. If you restart `linera net up`, any old wallet/keystore/chain metadata becomes incompatible with the new network. That mismatch shows up as `Keystore already exists` (old keys) or `Blobs not found` (chain ID not present in the new validators).
-
-You can also skip the `LINERA_WALLET`, `LINERA_KEYSTORE`, and `LINERA_STORAGE` exports and let Linera use its default directory `~/.config/linera`. We used a project-local `.linera` directory so resets are explicit and the state is isolated per project.
-
-Fix by resetting the local wallet directory and recreating the wallet/chain:
-
-```
-rm -rf .linera
-mkdir -p .linera
-export LINERA_WALLET=./.linera/wallet.json
-export LINERA_KEYSTORE=./.linera/keystore.json
-export LINERA_STORAGE=rocksdb:./.linera/wallet.db
-linera wallet init --faucet http://localhost:8080
-linera wallet request-chain --faucet http://localhost:8080
-```
-
-Common warnings that are safe to ignore:
-
-- `Waiting for faucet to start` appears during startup; it resolves once the faucet is ready.
-- `OTLP export requires the 'opentelemetry' feature to be enabled` only affects optional telemetry.
-
-## Per-project environment with direnv
-
-If you work with multiple Linera projects, use `direnv` so each repo has its own wallet paths.
-
-1. Install and hook direnv (one-time):
-   - `sudo apt install direnv`
-   - add `eval "$(direnv hook bash)"` to your `~/.bashrc`, then restart your shell
-2. In this repo:
-   - `cp .envrc.example .envrc`
-   - `direnv allow`
-
-This loads the project-local `.linera` paths automatically when you enter the repo.
-
-Quick setup script (does the steps above for bash/zsh):
-
-```
-./scripts/enable-direnv.sh
-```
-
-## One menu-driven script
-
-Interactive helper that runs steps in the right order and can start background services:
-
-```
-./scripts/quickstart.sh
-```
-
-Logs and PIDs for background processes are stored in `.run/`.
-Use the "Reset .linera" step after restarting `linera net up`.
-Use "Stop all services" to stop background processes started by the script.
-
-## Deploy linera-app
-
-Build the WASM artifacts:
-
-```
-cd linera-app
-cargo +1.86.0 build --release --target wasm32-unknown-unknown
-```
-
-Publish and create an app instance (auto-writes `chainId` and `appId`):
-
-```
-../scripts/linera-publish.sh
-```
-
-Manual publish (if you want full control):
-
-```
-linera publish-and-create \
-  target/wasm32-unknown-unknown/release/activity_log_contract.wasm \
-  target/wasm32-unknown-unknown/release/activity_log_service.wasm \
-  --json-argument "null"
-```
-
-Save the printed `app-id` and the default `chain-id` from `linera wallet show`.
-
-Store them in the local IDs file used by the relayer:
-
-```
-printf "{\"chainId\":\"%s\",\"appId\":\"%s\"}\n" "<chain-id>" "<app-id>" > ../.linera/ids.json
-```
-
-If you see `Filesystem error: No such file or directory (os error 2)` here, it means this shell does not have the `LINERA_WALLET`, `LINERA_KEYSTORE`, and `LINERA_STORAGE` variables set, or the `.linera` directory does not exist. Re-export the variables (from Step 2) and ensure `.linera` exists, then retry.
-
-## Run Linera node service
-
-This exposes the GraphQL endpoint used by the relayer.
-
-```
-export LINERA_WALLET=./.linera/wallet.json
-export LINERA_KEYSTORE=./.linera/keystore.json
-export LINERA_STORAGE=rocksdb:./.linera/wallet.db
-
-linera service --port 8081
-```
-
-If `linera service` shows `Blobs not found` for a chain description, your wallet/chain metadata does not match the currently running validators. Reset `.linera` and re-run Step 2.
-
-## Run relayer locally
-
-```
-cd relayer
-npm install
-npm run dev
-```
-
-Environment variables:
+`.env`:
 
 ```
 LINERA_ENDPOINT=http://localhost:8081
@@ -172,76 +173,34 @@ RELAYER_API_KEY=dev
 PORT=3000
 ```
 
-The IDs file format is JSON:
+Relayer writes to Linera if `LINERA_APP_ENDPOINT` is set or if the IDs file contains both `chainId` and `appId`. Otherwise it uses the in‑memory store.
 
-```
-{"chainId":"...","appId":"..."}
-```
+## Tests (detailed)
 
-Relayer writes to Linera only when `LINERA_APP_ENDPOINT` is set or when the IDs file contains both `chainId` and `appId`. You can override the file by setting `LINERA_CHAIN_ID` and `LINERA_APP_ID` directly. Otherwise it uses in-memory storage.
-
-## Tests
-
-Unit tests:
+### Unit
 
 ```
 cd relayer
 npm test
 ```
 
-During tests you may see `linera_append_failed` and `linera_get_failed` log lines. These are expected in tests that simulate Linera being unavailable. The test suite should still pass.
-
-E2E test against a running relayer:
+### E2E (relayer only)
 
 ```
 cd relayer
 npm run test:e2e
 ```
 
-`RELAYER_E2E=1` enables the e2e test; otherwise it is skipped.
+Requires: running relayer, `RELAYER_E2E=1`, `RELAYER_API_KEY`.
 
-E2E test that also checks Linera directly:
+### E2E + Linera
 
 ```
 cd relayer
 npm run test:e2e:linera
 ```
 
-`RELAYER_E2E_LINERA=1` requires `LINERA_ENDPOINT` plus either `LINERA_IDS_PATH` or explicit `LINERA_CHAIN_ID` and `LINERA_APP_ID`.
-
-## Full restart checklist
-
-Use this order after restarting your environment.
-
-1. Start validators and faucet (keep running):
-   - `linera net up --with-faucet --faucet-port 8080`
-2. Create/reset local wallet (if network was restarted):
-   - `rm -rf .linera`
-   - `mkdir -p .linera`
-   - `export LINERA_WALLET=./.linera/wallet.json`
-   - `export LINERA_KEYSTORE=./.linera/keystore.json`
-   - `export LINERA_STORAGE=rocksdb:./.linera/wallet.db`
-   - `linera wallet init --faucet http://localhost:8080`
-   - `linera wallet request-chain --faucet http://localhost:8080`
-3. Build and publish the app:
-   - `cd linera-app`
-   - `cargo +1.86.0 build --release --target wasm32-unknown-unknown`
-   - `../scripts/linera-publish.sh`
-4. Start the Linera service:
-   - `export LINERA_WALLET=./.linera/wallet.json`
-   - `export LINERA_KEYSTORE=./.linera/keystore.json`
-   - `export LINERA_STORAGE=rocksdb:./.linera/wallet.db`
-   - `linera service --port 8081`
-5. Update `.linera/ids.json` with the new `chainId` and `appId`.
-6. Start relayer:
-   - `cd relayer`
-   - `npm install`
-   - `npm run dev`
-7. Run tests in order:
-   - `cd relayer`
-   - `npm test`
-   - `npm run test:e2e`
-   - `npm run test:e2e:linera`
+Requires: `RELAYER_E2E_LINERA=1`, `LINERA_ENDPOINT`, and a valid `LINERA_IDS_PATH`.
 
 ## Curl examples
 
