@@ -13,27 +13,32 @@ Run the menu script:
 
 Menu options:
 
-1) Reset .linera  
-2) Export LINERA_* (local .linera)  
-3) Start linera net up (background)  
-4) linera wallet init  
-5) linera wallet request-chain  
-6) Build wasm  
-7) Publish app + write ids  
-8) Start linera service (background)  
-9) Start relayer (background)  
-10) Run tests (unit + e2e + e2e:linera)  
-11) Write ids manually  
-12) Stop all services  
-13) Force kill by ports (8080/8081/3000)  
-0) Full setup (1-9)  
+1) Full setup (2-10)  
+2) Reset .linera  
+3) Export LINERA_* (local .linera)  
+4) Start linera net up (background)  
+5) linera wallet init  
+6) linera wallet request-chain  
+7) Build wasm  
+8) Publish app + write ids  
+9) Start linera service (background)  
+10) Start relayer (background)  
+11) Run tests (unit + e2e + e2e:linera)  
+12) Sanity curl checks  
+13) Write ids manually  
+14) Stop all services  
+15) Force kill by ports (8080/8081/3000)  
 q) Quit
 
 Logs and PID files for background processes are stored in `.run/`.
 
 ## Installation and setup (detailed, in menu order)
 
-### 1) Reset .linera
+### 1) Full setup (2-10)
+
+Runs the full sequence: reset, export, net up, wallet init, request-chain, build, publish, start service, start relayer.
+
+### 2) Reset .linera
 
 Required after restarting `linera net up`, otherwise old wallet/chain metadata will not match the new network.
 
@@ -42,7 +47,7 @@ rm -rf .linera
 mkdir -p .linera
 ```
 
-### 2) Export LINERA_* (local .linera)
+### 3) Export LINERA_* (local .linera)
 
 ```
 export LINERA_WALLET=./.linera/wallet.json
@@ -52,7 +57,7 @@ export LINERA_STORAGE=rocksdb:./.linera/wallet.db
 
 You can skip these exports and use the default Linera directory `~/.config/linera`, but a project-local `.linera` is easier to reset and keeps state isolated per repo.
 
-### 3) Start linera net up
+### 4) Start linera net up
 
 ```
 linera net up --with-faucet --faucet-port 8080
@@ -60,26 +65,26 @@ linera net up --with-faucet --faucet-port 8080
 
 Keep this running while you work.
 
-### 4) linera wallet init
+### 5) linera wallet init
 
 ```
 linera wallet init --faucet http://localhost:8080
 ```
 
-### 5) linera wallet request-chain
+### 6) linera wallet request-chain
 
 ```
 linera wallet request-chain --faucet http://localhost:8080
 ```
 
-### 6) Build wasm
+### 7) Build wasm
 
 ```
 cd linera-app
 cargo +1.86.0 build --release --target wasm32-unknown-unknown
 ```
 
-### 7) Publish app + write ids
+### 8) Publish app + write ids
 
 Auto publish and write `chainId/appId`:
 
@@ -93,7 +98,7 @@ IDs file: `.linera/ids.json`
 {"chainId":"...","appId":"..."}
 ```
 
-### 8) Start linera service
+### 9) Start linera service
 
 ```
 linera service --port 8081
@@ -101,7 +106,7 @@ linera service --port 8081
 
 If you see `Blobs not found`, your wallet/chain metadata does not match the running validators. Run steps 1–5 again.
 
-### 9) Start relayer
+### 10) Start relayer
 
 ```
 cd relayer
@@ -109,7 +114,7 @@ npm install
 npm run dev
 ```
 
-### 10) Run tests (unit + e2e + e2e:linera)
+### 11) Run tests (unit + e2e + e2e:linera)
 
 ```
 cd relayer
@@ -120,17 +125,25 @@ npm run test:e2e:linera
 
 If tests print `linera_append_failed`/`linera_get_failed`, that is expected for cases where Linera is intentionally unavailable.
 
-### 11) Write ids manually
+### 12) Sanity curl checks
+
+```
+./scripts/quickstart.sh
+```
+
+Choose option `12` to run three curl checks against the relayer.
+
+### 13) Write ids manually
 
 ```
 printf "{\"chainId\":\"%s\",\"appId\":\"%s\"}\n" "<chain-id>" "<app-id>" > ./.linera/ids.json
 ```
 
-### 12) Stop all services
+### 14) Stop all services
 
 Stops background processes started by the script (`net up`, `linera service`, `relayer`).
 
-### 13) Force kill by ports (8080/8081/3000)
+### 15) Force kill by ports (8080/8081/3000)
 
 Force‑kills any process holding these ports.
 

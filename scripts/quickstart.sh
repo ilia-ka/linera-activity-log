@@ -261,6 +261,36 @@ run_tests() {
   (cd "$ROOT/relayer" && npm run test:e2e:linera)
 }
 
+sanity_curl() {
+  load_env
+  local base_url="${RELAYER_URL:-http://localhost:${PORT:-3000}}"
+  local api_key="${RELAYER_API_KEY:-dev}"
+  local actor="0x1111111111111111111111111111111111111111"
+  local id="11111111-1111-4111-8111-111111111111"
+  local intent="22222222-2222-4222-8222-222222222222"
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  echo "POST /event"
+  curl -s -X POST "$base_url/event" \
+    -H "content-type: application/json" \
+    -H "x-api-key: $api_key" \
+    -d "{\"id\":\"$id\",\"intentId\":\"$intent\",\"createdAt\":\"$now\",\"actor\":\"$actor\",\"app\":\"arc-stable-toolbox\",\"kind\":\"bridge\",\"status\":\"started\"}" \
+    && echo ""
+
+  echo "POST /event/status"
+  curl -s -X POST "$base_url/event/status" \
+    -H "content-type: application/json" \
+    -H "x-api-key: $api_key" \
+    -d "{\"actor\":\"$actor\",\"id\":\"$id\",\"status\":\"submitted\"}" \
+    && echo ""
+
+  echo "GET /events"
+  curl -s "$base_url/events?actor=$actor&limit=20" \
+    -H "x-api-key: $api_key" \
+    && echo ""
+}
+
 full_setup() {
   stop_all
   reset_linera_wallet
@@ -276,20 +306,21 @@ full_setup() {
 
 menu() {
   echo ""
-  echo "1) Reset .linera"
-  echo "2) Export LINERA_* (local .linera)"
-  echo "3) Start linera net up (background)"
-  echo "4) linera wallet init"
-  echo "5) linera wallet request-chain"
-  echo "6) Build wasm"
-  echo "7) Publish app + write ids"
-  echo "8) Start linera service (background)"
-  echo "9) Start relayer (background)"
-  echo "10) Run tests (unit + e2e + e2e:linera)"
-  echo "11) Write ids manually"
-  echo "12) Stop all services"
-  echo "13) Force kill by ports (8080/8081/3000)"
-  echo "0) Full setup (1-9)"
+  echo "1) Full setup (2-10)"
+  echo "2) Reset .linera"
+  echo "3) Export LINERA_* (local .linera)"
+  echo "4) Start linera net up (background)"
+  echo "5) linera wallet init"
+  echo "6) linera wallet request-chain"
+  echo "7) Build wasm"
+  echo "8) Publish app + write ids"
+  echo "9) Start linera service (background)"
+  echo "10) Start relayer (background)"
+  echo "11) Run tests (unit + e2e + e2e:linera)"
+  echo "12) Sanity curl checks"
+  echo "13) Write ids manually"
+  echo "14) Stop all services"
+  echo "15) Force kill by ports (8080/8081/3000)"
   echo "q) Quit"
 }
 
@@ -297,20 +328,21 @@ while true; do
   menu
   read -r -p "Select: " choice
   case "$choice" in
-    1) reset_linera_wallet ;;
-    2) export_linera_env ;;
-    3) start_net_up ;;
-    4) wallet_init ;;
-    5) wallet_request_chain ;;
-    6) build_wasm ;;
-    7) publish_and_write_ids ;;
-    8) start_service ;;
-    9) start_relayer ;;
-    10) run_tests ;;
-    11) write_ids_prompt ;;
-    12) stop_all ;;
-    13) force_kill_ports ;;
-    0) full_setup ;;
+    1) full_setup ;;
+    2) reset_linera_wallet ;;
+    3) export_linera_env ;;
+    4) start_net_up ;;
+    5) wallet_init ;;
+    6) wallet_request_chain ;;
+    7) build_wasm ;;
+    8) publish_and_write_ids ;;
+    9) start_service ;;
+    10) start_relayer ;;
+    11) run_tests ;;
+    12) sanity_curl ;;
+    13) write_ids_prompt ;;
+    14) stop_all ;;
+    15) force_kill_ports ;;
     q|Q) exit 0 ;;
     *) echo "Unknown option" ;;
   esac
