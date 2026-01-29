@@ -12,14 +12,12 @@ SERVICE_WASM="${LINERA_SERVICE_WASM:-$ROOT/linera-app/target/wasm32-unknown-unkn
 PUBLISH_OUT=$(linera publish-and-create "$APP_WASM" "$SERVICE_WASM" --json-argument "null" 2>&1)
 printf "%s\n" "$PUBLISH_OUT"
 
-APP_ID=$(printf "%s\n" "$PUBLISH_OUT" | grep -Eoi 'app[- ]?id[^0-9a-f]*([0-9a-f]{64})' | head -n1 | grep -Eo '[0-9a-f]{64}')
-if [ -z "$APP_ID" ]; then
-  APP_ID=$(printf "%s\n" "$PUBLISH_OUT" | grep -Eo '[0-9a-f]{64}' | head -n1)
-fi
+APP_ID=$(printf "%s\n" "$PUBLISH_OUT" | grep -Eo '[0-9a-f]{64}' | tail -n1 || true)
 
 CHAIN_ID="${LINERA_CHAIN_ID:-}"
 if [ -z "$CHAIN_ID" ]; then
-  CHAIN_ID=$(linera wallet show | awk '$1=="Chain" && $2=="ID:" { id=$3 } $1=="Tags:" && $2=="DEFAULT" { print id; exit }')
+  WALLET_OUT=$(linera wallet show)
+  CHAIN_ID=$(printf "%s\n" "$WALLET_OUT" | awk '$1=="Chain" && $2=="ID:" { id=$3 } $1=="Tags:" && $2=="DEFAULT" { default_id=id } END { print default_id }')
 fi
 
 if [ -z "$APP_ID" ] || [ -z "$CHAIN_ID" ]; then

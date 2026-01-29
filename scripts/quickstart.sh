@@ -31,25 +31,6 @@ export_linera_env() {
   echo "LINERA_STORAGE=$LINERA_STORAGE"
 }
 
-wait_for_port() {
-  local name="$1"
-  local host="$2"
-  local port="$3"
-  local timeout="${4:-30}"
-  local elapsed=0
-  while [ "$elapsed" -lt "$timeout" ]; do
-    if bash -c "echo > /dev/tcp/$host/$port" >/dev/null 2>&1; then
-      echo "$name ready on $host:$port"
-      return
-    fi
-    printf "."
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  echo ""
-  echo "$name not ready after ${timeout}s"
-}
-
 reset_linera_wallet() {
   rm -rf "$ROOT/.linera"
   mkdir -p "$ROOT/.linera"
@@ -71,6 +52,130 @@ start_bg() {
   echo "log: $log_file"
 }
 
+port_owner() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp "sport = :$port" 2>/dev/null || true
+    return
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+  fi
+}
+
+stop_bg() {
+  local name="$1"
+  local port="${2:-}"
+  local pid_file="$RUN_DIR/$name.pid"
+  if [ ! -f "$pid_file" ]; then
+    echo "$name not running"
+    return
+  fi
+  local pid
+  pid=$(cat "$pid_file")
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid"
+    echo "$name stopped (pid $pid)"
+  else
+    echo "$name not running (stale pid $pid)"
+    if [ -n "$port" ]; then
+      port_owner "$port"
+    fi
+  fi
+  rm -f "$pid_file"
+}
+
+get_faucet_port() {
+  local faucet_url="${LINERA_FAUCET_URL:-http://localhost:8080}"
+  local faucet_port
+  faucet_port=$(printf "%s" "$faucet_url" | sed -E 's#.*:([0-9]+)(/.*)?$#\1#')
+  if [ -z "$faucet_port" ] || [ "$faucet_port" = "$faucet_url" ]; then
+    faucet_port=8080
+  fi
+  printf "%s" "$faucet_port"
+}
+
+get_service_port() {
+  local service_port="8081"
+  if [ -n "${LINERA_ENDPOINT:-}" ]; then
+    local parsed
+    parsed=$(printf "%s" "$LINERA_ENDPOINT" | sed -E 's#.*:([0-9]+)(/.*)?$#\1#')
+    if [ -n "$parsed" ] && [ "$parsed" != "$LINERA_ENDPOINT" ]; then
+      service_port="$parsed"
+    fi
+  fi
+  printf "%s" "$service_port"
+}
+
+get_relayer_port() {
+  printf "%s" "${PORT:-3000}"
+}
+
+stop_all() {
+  stop_bg "relayer" "$(get_relayer_port)"
+  stop_bg "linera-service" "$(get_service_port)"
+  stop_bg "net-up" "$(get_faucet_port)"
+}
+
+kill_port() {
+  local port="$1"
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+    return
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    local pids
+    pids=$(lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+      kill $pids || true
+    fi
+    return
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    local pids
+    pids=$(ss -ltnp "sport = :$port" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
+    if [ -n "$pids" ]; then
+      kill $pids || true
+    fi
+  fi
+}
+
+force_kill_ports() {
+  kill_port "$(get_relayer_port)"
+  kill_port "$(get_service_port)"
+  kill_port "$(get_faucet_port)"
+  echo "ports released (if any were in use)"
+}
+
+wait_for_port() {
+  local name="$1"
+  local host="$2"
+  local port="$3"
+  local timeout="${4:-30}"
+  local pid_file="${5:-}"
+  local elapsed=0
+  while [ "$elapsed" -lt "$timeout" ]; do
+    if [ -n "$pid_file" ] && [ -f "$pid_file" ]; then
+      local pid
+      pid=$(cat "$pid_file")
+      if ! kill -0 "$pid" 2>/dev/null; then
+        echo ""
+        echo "$name exited (pid $pid)"
+        return
+      fi
+    fi
+    if bash -c "echo > /dev/tcp/$host/$port" >/dev/null 2>&1; then
+      echo "$name ready on $host:$port"
+      return
+    fi
+    printf "."
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  echo ""
+  echo "$name not ready after ${timeout}s"
+}
+
 start_net_up() {
   load_env
   export_linera_env
@@ -81,7 +186,7 @@ start_net_up() {
     faucet_port=8080
   fi
   start_bg "net-up" linera net up --with-faucet --faucet-port "$faucet_port"
-  wait_for_port "faucet" "localhost" "$faucet_port" 40
+  wait_for_port "faucet" "localhost" "$faucet_port" 40 "$RUN_DIR/net-up.pid"
 }
 
 wallet_init() {
@@ -137,15 +242,16 @@ start_service() {
     fi
   fi
   start_bg "linera-service" linera service --port "$service_port"
-  wait_for_port "linera service" "localhost" "$service_port" 20
+  wait_for_port "linera service" "localhost" "$service_port" 20 "$RUN_DIR/linera-service.pid"
 }
 
 start_relayer() {
   load_env
   (cd "$ROOT/relayer" && npm install)
   start_bg "relayer" bash -lc "cd \"$ROOT/relayer\" && npm run dev"
-  local relayer_port="${PORT:-3000}"
-  wait_for_port "relayer" "localhost" "$relayer_port" 20
+  local relayer_port
+  relayer_port=$(get_relayer_port)
+  wait_for_port "relayer" "localhost" "$relayer_port" 20 "$RUN_DIR/relayer.pid"
 }
 
 run_tests() {
@@ -156,6 +262,7 @@ run_tests() {
 }
 
 full_setup() {
+  stop_all
   reset_linera_wallet
   export_linera_env
   start_net_up
@@ -180,6 +287,8 @@ menu() {
   echo "9) Start relayer (background)"
   echo "10) Run tests (unit + e2e + e2e:linera)"
   echo "11) Write ids manually"
+  echo "12) Stop all services"
+  echo "13) Force kill by ports (8080/8081/3000)"
   echo "0) Full setup (1-9)"
   echo "q) Quit"
 }
@@ -199,6 +308,8 @@ while true; do
     9) start_relayer ;;
     10) run_tests ;;
     11) write_ids_prompt ;;
+    12) stop_all ;;
+    13) force_kill_ports ;;
     0) full_setup ;;
     q|Q) exit 0 ;;
     *) echo "Unknown option" ;;

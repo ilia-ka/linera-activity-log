@@ -103,6 +103,7 @@ Interactive helper that runs steps in the right order and can start background s
 
 Logs and PIDs for background processes are stored in `.run/`.
 Use the "Reset .linera" step after restarting `linera net up`.
+Use "Stop all services" to stop background processes started by the script.
 
 ## Deploy linera-app
 
