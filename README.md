@@ -32,6 +32,18 @@ q) Quit
 
 Logs and PID files for background processes are stored in `.run/`.
 
+## Dependencies
+
+Required:
+
+- Node.js (LTS) and npm
+- Rust toolchain (1.86.0) + `wasm32-unknown-unknown` target
+- `protoc` (Protocol Buffers compiler)
+
+Optional:
+
+- `direnv` (per‑project environment loading)
+
 ## Installation and setup (detailed, in menu order)
 
 ### 1) Full setup (2-10)
