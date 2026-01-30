@@ -1,10 +1,11 @@
-use linera_sdk::views::{MapView, RootView, ViewStorageContext};
+use linera_sdk::views::{MapView, RegisterView, RootView, ViewStorageContext};
 use serde::{Deserialize, Serialize};
 
 #[derive(RootView)]
 #[view(context = ViewStorageContext)]
 pub struct ActivityLogState {
-  pub events: MapView<String, Vec<ActivityEvent>>
+  pub events: MapView<String, Vec<ActivityEvent>>,
+  pub retention: RegisterView<u32>
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
