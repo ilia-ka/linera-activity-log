@@ -82,8 +82,10 @@ impl MutationRoot {
         if event.actor != actor {
             return false;
         }
-        self.runtime
-            .schedule_operation(&Operation::AppendEvent { actor, event });
+        self.runtime.schedule_operation(&Operation::AppendEvent {
+            actor,
+            event: Box::new(event),
+        });
         true
     }
 

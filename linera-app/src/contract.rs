@@ -44,6 +44,7 @@ impl Contract for ActivityLogContract {
     async fn execute_operation(&mut self, operation: Operation) -> OperationResponse {
         match operation {
             Operation::AppendEvent { actor, event } => {
+                let event = *event;
                 if actor != event.actor {
                     return OperationResponse::Err("actor_mismatch".to_string());
                 }
