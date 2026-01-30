@@ -12,7 +12,7 @@ pub struct ActivityLogAbi;
 pub enum Operation {
     AppendEvent {
         actor: String,
-        event: ActivityEvent,
+        event: Box<ActivityEvent>,
     },
     UpdateEventStatus {
         actor: String,
