@@ -235,6 +235,15 @@ npm run test:e2e:linera
 
 Requires: `RELAYER_E2E_LINERA=1`, `LINERA_ENDPOINT`, and a valid `LINERA_IDS_PATH`.
 
+## CI
+
+GitHub Actions runs:
+
+- Relayer unit tests (`npm run test:unit`)
+- Linera wasm build (`cargo build --release --target wasm32-unknown-unknown`)
+
+E2E tests are not part of CI because they require a running local Linera network.
+
 ## Curl examples
 
 Append event:
