@@ -8,7 +8,7 @@ use activity_log::{ActivityLogAbi, ActivityLogState, ActivityTx, Operation, Oper
 
 linera_sdk::contract!(ActivityLogContract);
 
-const RETENTION: usize = 300;
+const DEFAULT_RETENTION: u32 = 300;
 
 pub struct ActivityLogContract {
   state: ActivityLogState,
@@ -22,7 +22,7 @@ impl WithContractAbi for ActivityLogContract {
 impl Contract for ActivityLogContract {
   type Message = ();
   type Parameters = ();
-  type InstantiationArgument = ();
+  type InstantiationArgument = Option<u32>;
   type EventValue = ();
 
   async fn load(runtime: ContractRuntime<Self>) -> Self {
@@ -32,8 +32,13 @@ impl Contract for ActivityLogContract {
     Self { state, runtime }
   }
 
-  async fn instantiate(&mut self, _argument: Self::InstantiationArgument) {
+  async fn instantiate(&mut self, argument: Self::InstantiationArgument) {
     self.runtime.application_parameters();
+    let retention = match argument {
+      Some(value) if value > 0 => value,
+      _ => DEFAULT_RETENTION
+    };
+    self.state.retention.set(retention);
   }
 
   async fn execute_operation(&mut self, operation: Operation) -> OperationResponse {
@@ -51,8 +56,14 @@ impl Contract for ActivityLogContract {
           return OperationResponse::Err("event_exists".to_string());
         }
         list.push(event);
-        if list.len() > RETENTION {
-          let overflow = list.len() - RETENTION;
+        let retention = *self.state.retention.get();
+        let limit = if retention == 0 {
+          DEFAULT_RETENTION as usize
+        } else {
+          retention as usize
+        };
+        if list.len() > limit {
+          let overflow = list.len() - limit;
           list.drain(0..overflow);
         }
         if self.state.events.insert(&actor, list).is_err() {

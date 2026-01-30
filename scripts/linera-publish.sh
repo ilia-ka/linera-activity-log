@@ -8,8 +8,9 @@ if [[ "$IDS_PATH" != /* ]]; then
 fi
 APP_WASM="${LINERA_CONTRACT_WASM:-$ROOT/linera-app/target/wasm32-unknown-unknown/release/activity_log_contract.wasm}"
 SERVICE_WASM="${LINERA_SERVICE_WASM:-$ROOT/linera-app/target/wasm32-unknown-unknown/release/activity_log_service.wasm}"
+ARGUMENT="${LINERA_RETENTION:-null}"
 
-PUBLISH_OUT=$(linera publish-and-create "$APP_WASM" "$SERVICE_WASM" --json-argument "null" 2>&1)
+PUBLISH_OUT=$(linera publish-and-create "$APP_WASM" "$SERVICE_WASM" --json-argument "$ARGUMENT" 2>&1)
 printf "%s\n" "$PUBLISH_OUT"
 
 APP_ID=$(printf "%s\n" "$PUBLISH_OUT" | grep -Eo '[0-9a-f]{64}' | tail -n1 || true)

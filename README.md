@@ -104,6 +104,13 @@ Auto publish and write `chainId/appId`:
 ../scripts/linera-publish.sh
 ```
 
+Optional retention override (number of events per actor):
+
+```
+export LINERA_RETENTION=300
+../scripts/linera-publish.sh
+```
+
 IDs file: `.linera/ids.json`
 
 ```
@@ -192,6 +199,7 @@ cargo add linera-sdk@0.15.8
 ```
 LINERA_ENDPOINT=http://localhost:8081
 LINERA_IDS_PATH=./.linera/ids.json
+LINERA_RETENTION=300
 LINERA_APP_ENDPOINT=
 LINERA_WALLET_PATH=./linera-wallet.json
 RELAYER_API_KEY=dev
