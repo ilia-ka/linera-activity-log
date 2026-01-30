@@ -10,27 +10,30 @@ pub struct ActivityLogAbi;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Operation {
-  AppendEvent { actor: String, event: ActivityEvent },
-  UpdateEventStatus {
-    actor: String,
-    id: String,
-    status: ActivityStatus,
-    tx: Option<ActivityTx>
-  }
+    AppendEvent {
+        actor: String,
+        event: ActivityEvent,
+    },
+    UpdateEventStatus {
+        actor: String,
+        id: String,
+        status: ActivityStatus,
+        tx: Option<ActivityTx>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum OperationResponse {
-  Ok,
-  Err(String)
+    Ok,
+    Err(String),
 }
 
 impl ContractAbi for ActivityLogAbi {
-  type Operation = Operation;
-  type Response = OperationResponse;
+    type Operation = Operation;
+    type Response = OperationResponse;
 }
 
 impl ServiceAbi for ActivityLogAbi {
-  type Query = Request;
-  type QueryResponse = Response;
+    type Query = Request;
+    type QueryResponse = Response;
 }
