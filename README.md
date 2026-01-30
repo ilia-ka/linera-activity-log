@@ -1,5 +1,7 @@
 # linera-activity-log
 
+[![ci](https://github.com/ilia-ka/linera-activity-log/actions/workflows/ci.yml/badge.svg)](https://github.com/ilia-ka/linera-activity-log/actions/workflows/ci.yml)
+
 Realtime activity feed and audit log service for Arc Station.  
 The only goal is to store and serve ActivityEvent entries. Linera is used strictly as storage, not as business logic, execution, or decision layer.
 
@@ -234,6 +236,18 @@ npm run test:e2e:linera
 ```
 
 Requires: `RELAYER_E2E_LINERA=1`, `LINERA_ENDPOINT`, and a valid `LINERA_IDS_PATH`.
+
+## CI
+
+GitHub Actions runs:
+
+- Relayer typecheck (`npm run lint:types`)
+- Relayer unit tests (`npm run test:unit`)
+- Linera format check (`cargo fmt --check`)
+- Linera clippy (`cargo clippy --target wasm32-unknown-unknown -- -D warnings`)
+- Linera wasm build (`cargo build --release --target wasm32-unknown-unknown`)
+
+E2E tests are not part of CI because they require a running local Linera network.
 
 ## Curl examples
 
